@@ -49,6 +49,17 @@ class SubdomainResult(BaseModel):
     error: str = ""
 
 
+class HttpFingerprint(BaseModel):
+    url: str
+    status_code: int = 0
+    title: str = ""
+    server: str = ""
+    powered_by: str = ""
+    technologies: list[str] = []
+    robots_txt: str = ""
+    error: str = ""
+
+
 class ScanReport(BaseModel):
     target: str
     scan_time: datetime
@@ -56,6 +67,7 @@ class ScanReport(BaseModel):
     whois: WhoisResult | None = None
     ports: list[PortResult] = []
     subdomains: SubdomainResult | None = None
+    http: list[HttpFingerprint] = []
 
     @property
     def open_ports(self) -> list[PortResult]:

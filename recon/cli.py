@@ -38,6 +38,7 @@ def scan(
     skip_ports: bool = typer.Option(False, "--no-ports", help="Skip port scan"),
     subdomains: bool = typer.Option(False, "--subdomains", "-s", help="Enable subdomain brute-force"),
     wordlist: Path | None = typer.Option(None, "--wordlist", "-w", help="Wordlist for subdomain brute-force (default: built-in 50-word list)"),
+    skip_http: bool = typer.Option(False, "--no-http", help="Skip HTTP fingerprinting of open web ports"),
     output_dir: Path = typer.Option(Path("reports"), "--output", "-o", help="Output directory for reports"),
 ) -> None:
     """Run a full recon scan against a domain or IP."""
@@ -66,6 +67,7 @@ def scan(
             skip_dns=skip_dns,
             skip_whois=skip_whois,
             skip_ports=skip_ports,
+            skip_http=skip_http,
             wordlist=wl,
         )
 
@@ -119,6 +121,35 @@ def scan(
             console.print("[yellow]No open ports found in scanned range.[/yellow]")
         else:
             console.print(table)
+
+    # ── HTTP Fingerprinting ───────────────────────────────────────────────────
+    if report.http:
+        table = Table(
+            title=f"HTTP Fingerprinting — {len(report.http)} endpoint(s)",
+            box=box.SIMPLE_HEAVY,
+        )
+        table.add_column("URL", style="cyan", no_wrap=True)
+        table.add_column("Status", width=7)
+        table.add_column("Title")
+        table.add_column("Server", style="dim")
+        table.add_column("Technologies", style="yellow")
+        for fp in report.http:
+            if fp.error:
+                table.add_row(fp.url, "—", f"[red]{fp.error[:50]}[/red]", "", "")
+            else:
+                code = fp.status_code
+                status_str = (
+                    f"[green]{code}[/green]" if 200 <= code < 300
+                    else f"[yellow]{code}[/yellow]" if 300 <= code < 400
+                    else f"[red]{code}[/red]"
+                )
+                techs = ", ".join(fp.technologies) if fp.technologies else "—"
+                table.add_row(fp.url, status_str, fp.title or "—", fp.server or "—", techs)
+        console.print(table)
+        for fp in report.http:
+            if fp.robots_txt:
+                console.print(f"\n[bold]robots.txt[/bold] — {fp.url}")
+                console.print(fp.robots_txt.strip(), style="dim")
 
     # ── Subdomains ────────────────────────────────────────────────────────────
     if report.subdomains:

@@ -1,6 +1,6 @@
 # Recon Toolkit
 
-Automated reconnaissance tool for pentesters and security researchers. Given a domain or IP address, it runs DNS enumeration, WHOIS lookup, port scanning and async subdomain brute-force in parallel, then produces a clean Markdown and JSON report.
+Automated reconnaissance tool for pentesters and security researchers. Given a domain or IP address, it runs DNS enumeration, WHOIS lookup, port scanning, HTTP fingerprinting and async subdomain brute-force, then produces a clean Markdown and JSON report.
 
 ```
 $ python -m recon scan scanme.nmap.org --subdomains
@@ -8,25 +8,23 @@ $ python -m recon scan scanme.nmap.org --subdomains
 ╭──────────────────────────────────────────╮
 │  Recon Toolkit  scanning scanme.nmap.org │
 ╰──────────────────────────────────────────╯
-Subdomain wordlist: 50 words from subdomains-small.txt
 
       DNS Records
  Type  Value
  ──────────────────────────────────────
  A     45.33.32.156
  AAAA  2600:3c01::f03c:91ff:fe18:bb2f
- MX    0 .
-
-      WHOIS
- Field        Value
- ────────────────────────────────────
- Registrar    ARIN
 
   Port Scan — 2 open / 20 scanned
  Port   Service    Banner
- ─────────────────────────────────────────────────────
- 22     ssh        SSH-2.0-OpenSSH_6.6.1p1 Ubuntu...
+ ──────────────────────────────────────────────
+ 22     ssh        SSH-2.0-OpenSSH_6.6.1p1...
  80     http
+
+  HTTP Fingerprinting — 1 endpoint(s)
+ URL                       Status  Title              Server   Technologies
+ ────────────────────────────────────────────────────────────────────────────
+ http://scanme.nmap.org:80  200    Go ahead and ScanMe  Apache  —
 
   Subdomains — 1 found / 50 checked
  Subdomain              IP Addresses
@@ -40,9 +38,10 @@ Subdomain wordlist: 50 words from subdomains-small.txt
 - **WHOIS lookup** — registrar, creation/expiration dates, name servers
 - **Port scanning** — concurrent TCP connect scan (ThreadPoolExecutor), banner grabbing, top-20 common ports by default
 - **Subdomain brute-force** — async DNS resolution via `asyncio` + `dnspython`, up to 50 concurrent queries; built-in 50-word wordlist or bring your own
+- **HTTP fingerprinting** — for every open web port: page title, `Server` header, `X-Powered-By`, cookie-based tech detection (PHP, Django, Laravel…) and `robots.txt`
 - **Rich terminal output** — colour-coded tables via `rich`
 - **Dual report format** — Markdown + JSON saved automatically to `reports/`
-- **Fully modular** — skip any module with `--no-dns`, `--no-whois`, `--no-ports`
+- **Fully modular** — skip any module with `--no-dns`, `--no-whois`, `--no-ports`, `--no-http`
 
 ## Installation
 
@@ -70,6 +69,9 @@ python -m recon scan example.com --subdomains
 # Custom wordlist
 python -m recon scan example.com --wordlist /path/to/wordlist.txt
 
+# Skip HTTP fingerprinting
+python -m recon scan example.com --no-http
+
 # Custom port list, skip WHOIS
 python -m recon scan 45.33.32.156 --ports 22,80,443,8080,8443 --no-whois
 
@@ -94,10 +96,11 @@ recon/
   reporter.py        # Markdown + JSON report writer
   cli.py             # Typer CLI + Rich output
   modules/
-    dns_enum.py      # DNS enumeration (dnspython)
-    whois_lookup.py  # WHOIS lookup (python-whois)
-    port_scanner.py  # Concurrent TCP port scanner
-    subdomain_enum.py  # Async subdomain brute-force
+    dns_enum.py          # DNS enumeration (dnspython)
+    whois_lookup.py      # WHOIS lookup (python-whois)
+    port_scanner.py      # Concurrent TCP port scanner
+    subdomain_enum.py    # Async subdomain brute-force
+    http_fingerprint.py  # HTTP title, server, tech stack, robots.txt
 data/
   wordlists/
     subdomains-small.txt  # Built-in 50-word subdomain list
@@ -105,6 +108,7 @@ tests/
   test_models.py
   test_reporter.py
   test_subdomain_enum.py
+  test_http_fingerprint.py
 ```
 
 ## Running tests
@@ -120,7 +124,7 @@ Tests are pure-logic (no network required).
 
 - [x] Milestone 1 — DNS, WHOIS, port scan, reporter, CLI, tests
 - [x] Milestone 2 — Subdomain enumeration (async wordlist brute-force)
-- [ ] Milestone 3 — HTTP fingerprinting (title, server, tech stack)
+- [x] Milestone 3 — HTTP fingerprinting (title, server, tech stack, robots.txt)
 - [ ] Milestone 4 — HTML report + screenshots
 
 ## Legal

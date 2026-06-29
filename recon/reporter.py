@@ -78,4 +78,21 @@ def _render_markdown(report: ScanReport) -> str:
             lines.append("_No subdomains found._")
         lines.append("")
 
+    if report.http:
+        lines += [f"## HTTP Fingerprinting — {len(report.http)} endpoint(s)", ""]
+        lines += ["| URL | Status | Title | Server | Technologies |",
+                  "|-----|--------|-------|--------|-------------|"]
+        for fp in report.http:
+            if fp.error:
+                lines.append(f"| {fp.url} | — | _Error: {fp.error}_ | | |")
+            else:
+                techs = ", ".join(fp.technologies) if fp.technologies else "—"
+                lines.append(
+                    f"| {fp.url} | {fp.status_code} | {fp.title or '—'} | {fp.server or '—'} | {techs} |"
+                )
+        lines.append("")
+        for fp in report.http:
+            if fp.robots_txt:
+                lines += [f"### robots.txt — {fp.url}", "", "```", fp.robots_txt.strip(), "```", ""]
+
     return "\n".join(lines)
