@@ -39,6 +39,7 @@ def scan(
     subdomains: bool = typer.Option(False, "--subdomains", "-s", help="Enable subdomain brute-force"),
     wordlist: Path | None = typer.Option(None, "--wordlist", "-w", help="Wordlist for subdomain brute-force (default: built-in 50-word list)"),
     skip_http: bool = typer.Option(False, "--no-http", help="Skip HTTP fingerprinting of open web ports"),
+    fmt: str = typer.Option("both", "--format", "-f", help="Report format: md, html, or both (JSON always written)"),
     output_dir: Path = typer.Option(Path("reports"), "--output", "-o", help="Output directory for reports"),
 ) -> None:
     """Run a full recon scan against a domain or IP."""
@@ -50,6 +51,10 @@ def scan(
     ))
 
     port_list = _parse_ports(ports)
+
+    if fmt not in ("md", "html", "both"):
+        console.print(f"[red]Invalid --format:[/red] '{fmt}'. Choose md, html, or both.")
+        raise typer.Exit(1)
 
     wl: list[str] | None = None
     if subdomains or wordlist:
@@ -170,7 +175,7 @@ def scan(
             console.print(f"[yellow]No subdomains found[/yellow] ({sub.total_checked} checked).")
 
     # ── Save reports ──────────────────────────────────────────────────────────
-    paths = save_reports(report, output_dir)
+    paths = save_reports(report, output_dir, fmt=fmt)
     console.print("\n[green]Reports saved:[/green]")
     for fmt, path in paths.items():
         console.print(f"  [dim]{fmt}:[/dim] {path}")

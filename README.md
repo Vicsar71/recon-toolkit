@@ -40,7 +40,7 @@ $ python -m recon scan scanme.nmap.org --subdomains
 - **Subdomain brute-force** — async DNS resolution via `asyncio` + `dnspython`, up to 50 concurrent queries; built-in 50-word wordlist or bring your own
 - **HTTP fingerprinting** — for every open web port: page title, `Server` header, `X-Powered-By`, cookie-based tech detection (PHP, Django, Laravel…) and `robots.txt`
 - **Rich terminal output** — colour-coded tables via `rich`
-- **Dual report format** — Markdown + JSON saved automatically to `reports/`
+- **Triple report format** — Markdown, self-contained HTML (dark hacker theme, XSS-safe) and JSON; choose with `--format md|html|both`
 - **Fully modular** — skip any module with `--no-dns`, `--no-whois`, `--no-ports`, `--no-http`
 
 ## Installation
@@ -72,6 +72,10 @@ python -m recon scan example.com --wordlist /path/to/wordlist.txt
 # Skip HTTP fingerprinting
 python -m recon scan example.com --no-http
 
+# Choose report format (default: both MD and HTML; JSON always written)
+python -m recon scan example.com --format html
+python -m recon scan example.com --format md
+
 # Custom port list, skip WHOIS
 python -m recon scan 45.33.32.156 --ports 22,80,443,8080,8443 --no-whois
 
@@ -101,6 +105,7 @@ recon/
     port_scanner.py      # Concurrent TCP port scanner
     subdomain_enum.py    # Async subdomain brute-force
     http_fingerprint.py  # HTTP title, server, tech stack, robots.txt
+  html_reporter.py       # Self-contained HTML report (dark theme, XSS-safe)
 data/
   wordlists/
     subdomains-small.txt  # Built-in 50-word subdomain list
@@ -109,6 +114,7 @@ tests/
   test_reporter.py
   test_subdomain_enum.py
   test_http_fingerprint.py
+  test_html_reporter.py
 ```
 
 ## Running tests
@@ -125,7 +131,7 @@ Tests are pure-logic (no network required).
 - [x] Milestone 1 — DNS, WHOIS, port scan, reporter, CLI, tests
 - [x] Milestone 2 — Subdomain enumeration (async wordlist brute-force)
 - [x] Milestone 3 — HTTP fingerprinting (title, server, tech stack, robots.txt)
-- [ ] Milestone 4 — HTML report + screenshots
+- [x] Milestone 4 — Self-contained HTML report (dark theme, XSS-safe) + `--format` flag
 
 ## Legal
 

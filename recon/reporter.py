@@ -1,21 +1,38 @@
 from __future__ import annotations
 from pathlib import Path
 from .models import ScanReport, PortState
+from .html_reporter import render_html
+
+_VALID_FORMATS = ("md", "html", "both")
 
 
-def save_reports(report: ScanReport, output_dir: Path = Path("reports")) -> dict[str, Path]:
+def save_reports(
+    report: ScanReport,
+    output_dir: Path = Path("reports"),
+    fmt: str = "both",
+) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = report.scan_time.strftime("%Y%m%d_%H%M%S")
     safe_target = report.target.replace(".", "_").replace("/", "_").replace(":", "_")
     stem = f"{safe_target}_{timestamp}"
 
+    paths: dict[str, Path] = {}
+
     json_path = output_dir / f"{stem}.json"
-    md_path = output_dir / f"{stem}.md"
-
     json_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    md_path.write_text(_render_markdown(report), encoding="utf-8")
+    paths["json"] = json_path
 
-    return {"json": json_path, "markdown": md_path}
+    if fmt in ("md", "both"):
+        md_path = output_dir / f"{stem}.md"
+        md_path.write_text(_render_markdown(report), encoding="utf-8")
+        paths["markdown"] = md_path
+
+    if fmt in ("html", "both"):
+        html_path = output_dir / f"{stem}.html"
+        html_path.write_text(render_html(report), encoding="utf-8")
+        paths["html"] = html_path
+
+    return paths
 
 
 def _render_markdown(report: ScanReport) -> str:
