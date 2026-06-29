@@ -65,4 +65,17 @@ def _render_markdown(report: ScanReport) -> str:
             lines.append("_No open ports found in scanned range._")
         lines.append("")
 
+    if report.subdomains:
+        sub = report.subdomains
+        lines += [f"## Subdomain Enumeration — {len(sub.found)} found / {sub.total_checked} checked", ""]
+        if sub.error:
+            lines.append(f"_Error: {sub.error}_")
+        elif sub.found:
+            lines += ["| Subdomain | IP Addresses |", "|-----------|-------------|"]
+            for r in sub.found:
+                lines.append(f"| {r.subdomain} | {', '.join(r.ip_addresses)} |")
+        else:
+            lines.append("_No subdomains found._")
+        lines.append("")
+
     return "\n".join(lines)

@@ -8,6 +8,7 @@ from rich.panel import Panel
 from rich import box
 from .runner import run_scan
 from .reporter import save_reports
+from .modules.subdomain_enum import DEFAULT_WORDLIST, load_wordlist
 
 app = typer.Typer(help="Recon Toolkit — automated reconnaissance for pentesters", add_completion=False, no_args_is_help=True)
 console = Console()
@@ -35,6 +36,8 @@ def scan(
     skip_dns: bool = typer.Option(False, "--no-dns", help="Skip DNS enumeration"),
     skip_whois: bool = typer.Option(False, "--no-whois", help="Skip WHOIS lookup"),
     skip_ports: bool = typer.Option(False, "--no-ports", help="Skip port scan"),
+    subdomains: bool = typer.Option(False, "--subdomains", "-s", help="Enable subdomain brute-force"),
+    wordlist: Path | None = typer.Option(None, "--wordlist", "-w", help="Wordlist for subdomain brute-force (default: built-in 50-word list)"),
     output_dir: Path = typer.Option(Path("reports"), "--output", "-o", help="Output directory for reports"),
 ) -> None:
     """Run a full recon scan against a domain or IP."""
@@ -47,6 +50,15 @@ def scan(
 
     port_list = _parse_ports(ports)
 
+    wl: list[str] | None = None
+    if subdomains or wordlist:
+        wl_path = wordlist if wordlist else DEFAULT_WORDLIST
+        if not wl_path.exists():
+            console.print(f"[red]Wordlist not found:[/red] {wl_path}")
+            raise typer.Exit(1)
+        wl = load_wordlist(wl_path)
+        console.print(f"[dim]Subdomain wordlist:[/dim] {len(wl)} words from {wl_path.name}")
+
     with console.status("[cyan]Running modules...[/cyan]"):
         report = run_scan(
             target,
@@ -54,6 +66,7 @@ def scan(
             skip_dns=skip_dns,
             skip_whois=skip_whois,
             skip_ports=skip_ports,
+            wordlist=wl,
         )
 
     # ── DNS ──────────────────────────────────────────────────────────────────
@@ -106,6 +119,24 @@ def scan(
             console.print("[yellow]No open ports found in scanned range.[/yellow]")
         else:
             console.print(table)
+
+    # ── Subdomains ────────────────────────────────────────────────────────────
+    if report.subdomains:
+        sub = report.subdomains
+        if sub.error:
+            console.print(f"[yellow]Subdomain error:[/yellow] {sub.error}")
+        elif sub.found:
+            table = Table(
+                title=f"Subdomains — [green]{len(sub.found)} found[/green] / {sub.total_checked} checked",
+                box=box.SIMPLE_HEAVY,
+            )
+            table.add_column("Subdomain", style="bold cyan")
+            table.add_column("IP Addresses", style="green")
+            for r in sub.found:
+                table.add_row(r.subdomain, ", ".join(r.ip_addresses))
+            console.print(table)
+        else:
+            console.print(f"[yellow]No subdomains found[/yellow] ({sub.total_checked} checked).")
 
     # ── Save reports ──────────────────────────────────────────────────────────
     paths = save_reports(report, output_dir)

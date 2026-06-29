@@ -37,12 +37,25 @@ class WhoisResult(BaseModel):
     error: str = ""
 
 
+class SubdomainRecord(BaseModel):
+    subdomain: str
+    ip_addresses: list[str] = []
+
+
+class SubdomainResult(BaseModel):
+    domain: str
+    found: list[SubdomainRecord] = []
+    total_checked: int = 0
+    error: str = ""
+
+
 class ScanReport(BaseModel):
     target: str
     scan_time: datetime
     dns: DnsResult | None = None
     whois: WhoisResult | None = None
     ports: list[PortResult] = []
+    subdomains: SubdomainResult | None = None
 
     @property
     def open_ports(self) -> list[PortResult]:

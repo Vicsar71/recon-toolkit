@@ -5,6 +5,7 @@ from .models import ScanReport
 from .modules.dns_enum import enumerate_dns
 from .modules.whois_lookup import lookup_whois
 from .modules.port_scanner import scan_ports, TOP_PORTS
+from .modules.subdomain_enum import enumerate_subdomains
 
 
 def run_scan(
@@ -13,6 +14,7 @@ def run_scan(
     skip_dns: bool = False,
     skip_whois: bool = False,
     skip_ports: bool = False,
+    wordlist: list[str] | None = None,
 ) -> ScanReport:
     report = ScanReport(target=target, scan_time=datetime.now(timezone.utc))
 
@@ -28,5 +30,8 @@ def run_scan(
         except socket.gaierror:
             host_ip = target
         report.ports = scan_ports(host_ip, ports if ports is not None else TOP_PORTS)
+
+    if wordlist is not None:
+        report.subdomains = enumerate_subdomains(target, wordlist)
 
     return report
