@@ -1,13 +1,14 @@
 # Recon Toolkit
 
-Automated reconnaissance tool for pentesters and security researchers. Given a domain or IP address, it runs DNS enumeration, WHOIS lookup and port scanning in parallel, then produces a clean Markdown and JSON report.
+Automated reconnaissance tool for pentesters and security researchers. Given a domain or IP address, it runs DNS enumeration, WHOIS lookup, port scanning and async subdomain brute-force in parallel, then produces a clean Markdown and JSON report.
 
 ```
-$ python -m recon scan scanme.nmap.org
+$ python -m recon scan scanme.nmap.org --subdomains
 
-╭─────────────────────────────────────────╮
+╭──────────────────────────────────────────╮
 │  Recon Toolkit  scanning scanme.nmap.org │
-╰─────────────────────────────────────────╯
+╰──────────────────────────────────────────╯
+Subdomain wordlist: 50 words from subdomains-small.txt
 
       DNS Records
  Type  Value
@@ -26,6 +27,11 @@ $ python -m recon scan scanme.nmap.org
  ─────────────────────────────────────────────────────
  22     ssh        SSH-2.0-OpenSSH_6.6.1p1 Ubuntu...
  80     http
+
+  Subdomains — 1 found / 50 checked
+ Subdomain              IP Addresses
+ ──────────────────────────────────────────
+ www.scanme.nmap.org    45.33.32.156
 ```
 
 ## Features
@@ -33,6 +39,7 @@ $ python -m recon scan scanme.nmap.org
 - **DNS enumeration** — A, AAAA, MX, NS, TXT, CNAME records via `dnspython`
 - **WHOIS lookup** — registrar, creation/expiration dates, name servers
 - **Port scanning** — concurrent TCP connect scan (ThreadPoolExecutor), banner grabbing, top-20 common ports by default
+- **Subdomain brute-force** — async DNS resolution via `asyncio` + `dnspython`, up to 50 concurrent queries; built-in 50-word wordlist or bring your own
 - **Rich terminal output** — colour-coded tables via `rich`
 - **Dual report format** — Markdown + JSON saved automatically to `reports/`
 - **Fully modular** — skip any module with `--no-dns`, `--no-whois`, `--no-ports`
@@ -57,11 +64,14 @@ pip install -r requirements.txt
 # Full scan (DNS + WHOIS + ports)
 python -m recon scan scanme.nmap.org
 
-# Custom port list
-python -m recon scan 45.33.32.156 --ports 22,80,443,8080,8443
+# Include subdomain brute-force (built-in wordlist)
+python -m recon scan example.com --subdomains
 
-# Skip WHOIS (faster, no external query)
-python -m recon scan example.com --no-whois
+# Custom wordlist
+python -m recon scan example.com --wordlist /path/to/wordlist.txt
+
+# Custom port list, skip WHOIS
+python -m recon scan 45.33.32.156 --ports 22,80,443,8080,8443 --no-whois
 
 # Save reports to a custom directory
 python -m recon scan example.com --output my_reports/
@@ -87,16 +97,21 @@ recon/
     dns_enum.py      # DNS enumeration (dnspython)
     whois_lookup.py  # WHOIS lookup (python-whois)
     port_scanner.py  # Concurrent TCP port scanner
+    subdomain_enum.py  # Async subdomain brute-force
+data/
+  wordlists/
+    subdomains-small.txt  # Built-in 50-word subdomain list
 tests/
   test_models.py
   test_reporter.py
+  test_subdomain_enum.py
 ```
 
 ## Running tests
 
 ```bash
-pytest                              # all tests
-pytest tests/test_reporter.py      # reporter only
+pytest                                    # all tests
+pytest tests/test_subdomain_enum.py      # subdomain module only
 ```
 
 Tests are pure-logic (no network required).
@@ -104,7 +119,7 @@ Tests are pure-logic (no network required).
 ## Roadmap
 
 - [x] Milestone 1 — DNS, WHOIS, port scan, reporter, CLI, tests
-- [ ] Milestone 2 — Subdomain enumeration (async wordlist brute-force)
+- [x] Milestone 2 — Subdomain enumeration (async wordlist brute-force)
 - [ ] Milestone 3 — HTTP fingerprinting (title, server, tech stack)
 - [ ] Milestone 4 — HTML report + screenshots
 
